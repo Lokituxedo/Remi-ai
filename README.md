@@ -1,18 +1,16 @@
 # Remi-ai
 
-Servidor ligero de IA para Elena/Remi. Expone endpoints para chat, inferencia y embeddings con Ollama y permite cambiar el modelo en desarrollo sin comprometer la seguridad del core.
+Servidor ligero de IA para Elena/Remi. Expone endpoints para chat, inferencia y embeddings con Ollama y permite cambiar el modelo en desarrollo, manteniendo el control centralizado del core.
 
 ## Qué incluye
 - FastAPI
-- Health checks
-- Lista de modelos disponibles
-- Inferencia con Ollama
-- Generación de embeddings
-- Validación de modelos permitidos por entorno
+- endpoints de salud y modelos
+- inferencia con Ollama
+- embeddings con Ollama
+- validación de modelos por entorno
+- arquitectura modular para crecer sin mezclar lógica de negocio
 
 ## Variables de entorno
-
-Copia el ejemplo:
 
 ```bash
 cp .env.example .env
@@ -20,11 +18,11 @@ cp .env.example .env
 
 Variables principales:
 
-- `OLLAMA_URL` — base URL de Ollama, por ejemplo `http://127.0.0.1:11434`
-- `DEFAULT_MODEL` — modelo por defecto para chat, por ejemplo `qwen2.5:3b-instruct-q4_K_M`
-- `DEFAULT_EMBED_MODEL` — modelo por defecto para embeddings, por ejemplo `nomic-embed-text`
-- `ALLOWED_MODELS` — lista opcional de modelos permitidos, ejemplo: `qwen2.5:3b-instruct-q4_K_M,qwen2.5-coder:3b,qwen3-embedding:0.6b,nomic-embed-text`
-- `ALLOW_MODEL_OVERRIDE` — `true` para permitir cambiar modelos desde la UI o desde llamadas externas; `false` para bloquearlo
+- `OLLAMA_URL`: base URL de Ollama, por ejemplo `http://127.0.0.1:11434`
+- `DEFAULT_MODEL`: modelo por defecto para chat, ejemplo `qwen2.5:3b-instruct-q4_K_M`
+- `DEFAULT_EMBED_MODEL`: modelo para embeddings, ejemplo `nomic-embed-text`
+- `ALLOW_MODEL_OVERRIDE`: `true` para permitir override en desarrollo; `false` para producción
+- `ALLOWED_MODELS`: lista separada por comas de modelos permitidos
 
 ## Ejecutar
 
@@ -32,10 +30,16 @@ Variables principales:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Endpoints
+
+### GET /
+
+```json
+{"service": "Remi-ai", "status": "ok"}
+```
 
 ### GET /health
 
@@ -44,13 +48,13 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
   "ok": true,
   "ollama": true,
   "default_model": "qwen2.5:3b-instruct-q4_K_M",
-  "allowed_models": ["..."]
+  "allow_model_override": true
 }
 ```
 
 ### GET /models
 
-Devuelve la lista de modelos permitidos y los detectados por Ollama.
+Devuelve modelos detectados por Ollama y permitidos por configuración.
 
 ### POST /infer
 
@@ -62,26 +66,26 @@ Devuelve la lista de modelos permitidos y los detectados por Ollama.
 }
 ```
 
+### POST /chat
+
+Alias de `/infer`.
+
 ### POST /embed
 
 ```json
 {
   "model": "nomic-embed-text",
-  "text": "texto para embeddar"
+  "text": "texto para convertir a vector"
 }
 ```
 
-### POST /chat
-
-Alias de `/infer`.
-
 ## Seguridad
 
-En producción conviene dejar:
+En producción conviene dejar esto:
 
 ```bash
 ALLOW_MODEL_OVERRIDE=false
 ALLOWED_MODELS=qwen2.5:3b-instruct-q4_K_M
 ```
 
-Esto evita que un cliente cambie arbitrariamente el modelo que se está usando.
+Esto evita que un cliente cambie arbitrariamente el modelo de inferencia.
